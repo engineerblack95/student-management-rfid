@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment files
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+
+# Build output
+dist/
+build/
+frontend/dist/
+frontend/.vite/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test temp files
+test-*.json
+backend/test-*.json
+simulator/test-*.json
+
+# Arduino
+firmware/**/build/
+*.hex
+*.bin
+
+# Coverage
+coverage/
