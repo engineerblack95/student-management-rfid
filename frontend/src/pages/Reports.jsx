@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { FileText, BarChart3 } from 'lucide-react';
 import { getTodayReport, getAttendance } from '../services/api';
 
 export default function Reports() {
@@ -21,19 +22,26 @@ export default function Reports() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Reports — Today</h1>
+      <h1 className="text-2xl font-bold flex items-center gap-2">
+        <FileText size={24} /> Reports — Today
+      </h1>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {report && Object.entries(report).map(([k, v]) => (
-          <div key={k} className="card">
-            <p className="text-xs text-slate-500 capitalize">{k.replace(/([A-Z])/g, ' $1')}</p>
-            <p className="text-2xl font-bold">{v}</p>
-          </div>
-        ))}
+        {report &&
+          Object.entries(report).map(([k, v]) => (
+            <div key={k} className="card">
+              <p className="text-xs text-slate-500 capitalize">
+                {k.replace(/([A-Z])/g, ' $1')}
+              </p>
+              <p className="text-2xl font-bold">{v}</p>
+            </div>
+          ))}
       </div>
 
       <div className="card">
-        <h3 className="font-semibold mb-3">📊 Scans by Class</h3>
+        <h3 className="font-semibold mb-3 flex items-center gap-2">
+          <BarChart3 size={18} /> Scans by Class
+        </h3>
         {Object.keys(byClass).length === 0 ? (
           <p className="text-slate-400">No data.</p>
         ) : (

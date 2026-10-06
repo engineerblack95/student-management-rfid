@@ -1,4 +1,12 @@
 import { useEffect, useState } from 'react';
+import {
+  FlaskConical,
+  Radio,
+  CheckCircle2,
+  XCircle,
+  History,
+  User,
+} from 'lucide-react';
 import { getAttendance, simulateScan } from '../services/api';
 
 export default function Attendance() {
@@ -6,20 +14,25 @@ export default function Attendance() {
   const [uid, setUid] = useState('A342B519');
   const [deviceId, setDeviceId] = useState('RFID-READER-001');
   const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => { load(); }, []);
+
   const load = async () => {
     const res = await getAttendance();
     setRecords(res.data.data);
   };
 
   const handleSimulate = async () => {
+    setLoading(true);
     try {
       const res = await simulateScan({ deviceId, rfidUid: uid });
       setResult(res.data);
       load();
     } catch (err) {
       setResult({ success: false, message: err.message });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -29,36 +42,77 @@ export default function Attendance() {
 
       {/* Simulator Card */}
       <div className="card border-l-4 border-blue-500">
-        <h3 className="font-semibold mb-3">🧪 RFID Scan</h3>
+        <h3 className="font-semibold mb-3 flex items-center gap-2">
+          <FlaskConical size={18} /> RFID Scan Simulator
+          <span className="text-xs text-slate-400 font-normal">
+            (as ESP32 will do tomorrow)
+          </span>
+        </h3>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <input className="input font-mono" value={uid} onChange={(e) => setUid(e.target.value)} placeholder="RFID UID" />
-          <input className="input font-mono" value={deviceId} onChange={(e) => setDeviceId(e.target.value)} placeholder="Device ID" />
-          <button onClick={handleSimulate} className="btn btn-primary">📡  Scan Now</button>
+          <input
+            className="input font-mono"
+            value={uid}
+            onChange={(e) => setUid(e.target.value)}
+            placeholder="RFID UID"
+          />
+          <input
+            className="input font-mono"
+            value={deviceId}
+            onChange={(e) => setDeviceId(e.target.value)}
+            placeholder="Device ID"
+          />
+          <button
+            onClick={handleSimulate}
+            disabled={loading}
+            className="btn btn-primary inline-flex items-center justify-center gap-2 disabled:opacity-60"
+          >
+            <Radio size={16} /> {loading ? 'Sending...' : 'Simulate Scan'}
+          </button>
         </div>
 
         {result && (
-          <div className={`mt-4 p-4 rounded-lg ${
-            result.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-          }`}>
-            <p className="font-bold">{result.success ? '✅ ACCEPTED' : '❌ REJECTED'}</p>
-            <p>{result.message}</p>
-            {result.student && (
-              <p className="text-sm mt-1">
-                👤 {result.student.name} ({result.student.studentId}) — {result.student.className}
-              </p>
+          <div
+            className={`mt-4 p-4 rounded-lg flex items-start gap-3 ${
+              result.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            }`}
+          >
+            {result.success ? (
+              <CheckCircle2 size={22} className="mt-0.5 shrink-0" />
+            ) : (
+              <XCircle size={22} className="mt-0.5 shrink-0" />
             )}
+            <div>
+              <p className="font-bold">
+                {result.success ? 'ACCEPTED' : 'REJECTED'}
+              </p>
+              <p>{result.message}</p>
+              {result.student && (
+                <p className="text-sm mt-1 inline-flex items-center gap-1.5">
+                  <User size={14} /> {result.student.name} ({result.student.studentId}) — {result.student.className}
+                </p>
+              )}
+            </div>
           </div>
         )}
       </div>
 
       {/* Attendance History */}
       <div className="card overflow-x-auto">
-        <h3 className="font-semibold mb-3">📅 Attendance History ({records.length})</h3>
+        <h3 className="font-semibold mb-3 flex items-center gap-2">
+          <History size={18} /> Attendance History ({records.length})
+        </h3>
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-slate-500 border-b">
-              <th className="py-2">#</th><th>Student</th><th>Class</th>
-              <th>RFID UID</th><th>Device</th><th>Date</th><th>Time</th><th>Status</th>
+              <th className="py-2">#</th>
+              <th>Student</th>
+              <th>Class</th>
+              <th>RFID UID</th>
+              <th>Device</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -71,11 +125,17 @@ export default function Attendance() {
                 <td>{r.device_id}</td>
                 <td>{r.attendance_date?.slice(0, 10)}</td>
                 <td>{new Date(r.scan_time).toLocaleTimeString()}</td>
-                <td><span className="badge badge-green">{r.status}</span></td>
+                <td>
+                  <span className="badge badge-green">{r.status}</span>
+                </td>
               </tr>
             ))}
             {records.length === 0 && (
-              <tr><td colSpan="8" className="py-6 text-center text-slate-400">No attendance yet.</td></tr>
+              <tr>
+                <td colSpan="8" className="py-6 text-center text-slate-400">
+                  No attendance yet.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
