@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search } from 'lucide-react';
-import { getStudents, deleteStudent } from '../services/api';
+import { Plus, Search, Eye, Pencil, Trash2 } from 'lucide-react';
+import { getStudents, deactivateStudent, hardDeleteStudent } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function Students() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [students, setStudents] = useState([]);
   const [search, setSearch] = useState('');
 
@@ -14,9 +17,20 @@ export default function Students() {
     setStudents(res.data.data);
   };
 
-  const handleDelete = async (id, name) => {
-    if (!window.confirm(`Deactivate ${name}?`)) return;
-    await deleteStudent(id);
+  const handleDeactivate = async (id, name) => {
+    if (!window.confirm(`Deactivate ${name}? They can no longer scan RFID.`)) return;
+    await deactivateStudent(id);
+    load();
+  };
+
+  const handleHardDelete = async (id, name) => {
+    if (
+      !window.confirm(
+        `⚠️ Permanently DELETE ${name}?\n\nThis will also remove their RFID card and ALL attendance records.\nThis cannot be undone.`
+      )
+    )
+      return;
+    await hardDeleteStudent(id);
     load();
   };
 
@@ -30,20 +44,13 @@ export default function Students() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Students ({students.length})</h1>
-        <Link
-          to="/students/add"
-          className="btn btn-primary inline-flex items-center gap-2"
-        >
+        <Link to="/students/add" className="btn btn-primary inline-flex items-center gap-2">
           <Plus size={16} /> Add Student
         </Link>
       </div>
 
-      {/* Search box with magnifier icon */}
       <div className="relative max-w-md">
-        <Search
-          size={16}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-        />
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
         <input
           placeholder="Search by name or student number..."
           className="input pl-10"
@@ -80,16 +87,41 @@ export default function Students() {
                     {s.status}
                   </span>
                 </td>
-                <td className="space-x-2">
-                  <Link to={`/students/${s.id}`} className="text-blue-600 hover:underline text-xs">
-                    View
-                  </Link>
-                  <button
-                    onClick={() => handleDelete(s.id, s.first_name)}
-                    className="text-red-600 hover:underline text-xs"
-                  >
-                    Deactivate
-                  </button>
+                <td>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      to={`/students/${s.id}`}
+                      title="View"
+                      className="p-1.5 rounded hover:bg-blue-50 text-blue-600"
+                    >
+                      <Eye size={15} />
+                    </Link>
+                    <Link
+                      to={`/students/${s.id}/edit`}
+                      title="Edit"
+                      className="p-1.5 rounded hover:bg-amber-50 text-amber-600"
+                    >
+                      <Pencil size={15} />
+                    </Link>
+                    {isAdmin && (
+                      <>
+                        <button
+                          onClick={() => handleDeactivate(s.id, s.first_name)}
+                          title="Deactivate"
+                          className="text-xs text-slate-500 hover:underline"
+                        >
+                          Deactivate
+                        </button>
+                        <button
+                          onClick={() => handleHardDelete(s.id, s.first_name)}
+                          title="Delete permanently (admin only)"
+                          className="p-1.5 rounded hover:bg-red-50 text-red-600"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

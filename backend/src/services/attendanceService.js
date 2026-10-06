@@ -5,18 +5,15 @@ const normalizeUid = (uid) => String(uid || '').trim().toUpperCase();
 
 // ---------- Process scan ----------
 const processScan = async ({ deviceId, rfidUid }) => {
-  // 1. Validate input
   if (!deviceId || !rfidUid) {
     return { success: false, message: 'deviceId and rfidUid are required' };
   }
 
   const uid = normalizeUid(rfidUid);
-
   if (!uid) {
     return { success: false, message: 'Invalid RFID UID' };
   }
 
-  // 2. Find RFID card (case-insensitive + whitespace-insensitive)
   const cardResult = await pool.query(
     `SELECT rc.*, s.id AS student_id, s.student_number, s.first_name, s.last_name,
             s.class_name, s.status AS student_status
@@ -26,24 +23,20 @@ const processScan = async ({ deviceId, rfidUid }) => {
     [uid]
   );
 
-  // 3. Unknown card
   if (cardResult.rows.length === 0) {
     return { success: false, message: 'RFID card not registered' };
   }
 
   const card = cardResult.rows[0];
 
-  // 4. Disabled / lost card
   if (card.card_status !== 'active') {
     return { success: false, message: `Card is ${card.card_status}` };
   }
 
-  // 5. Inactive student
   if (card.student_status !== 'active') {
     return { success: false, message: 'Student is inactive' };
   }
 
-  // 6. Duplicate protection — no second scan within 60 seconds
   const dupCheck = await pool.query(
     `SELECT id FROM attendance
      WHERE student_id = $1 AND scan_time > NOW() - INTERVAL '60 seconds'`,
@@ -62,7 +55,6 @@ const processScan = async ({ deviceId, rfidUid }) => {
     };
   }
 
-  // 7. Record attendance — store the NORMALIZED UID
   const insertResult = await pool.query(
     `INSERT INTO attendance (student_id, rfid_uid, device_id, status)
      VALUES ($1, $2, $3, 'present') RETURNING *`,
@@ -125,4 +117,14 @@ const getTodayReport = async () => {
   };
 };
 
-module.exports = { processScan, getAttendance, getTodayReport };
+// ---------- Delete an attendance record (admin only) ----------
+const deleteAttendance = async (id) => {
+  const result = await pool.query(
+    `DELETE FROM attendance WHERE id = $1 RETURNING *`,
+    [id]
+  );
+  if (result.rows.length === 0) throw new Error('Attendance record not found');
+  return result.rows[0];
+};
+
+module.exports = { processScan, getAttendance, getTodayReport, deleteAttendance };

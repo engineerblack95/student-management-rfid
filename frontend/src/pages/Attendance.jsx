@@ -6,10 +6,15 @@ import {
   XCircle,
   History,
   User,
+  Trash2,
 } from 'lucide-react';
-import { getAttendance, simulateScan } from '../services/api';
+import { getAttendance, simulateScan, deleteAttendance } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function Attendance() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
   const [records, setRecords] = useState([]);
   const [uid, setUid] = useState('A342B519');
   const [deviceId, setDeviceId] = useState('RFID-READER-001');
@@ -36,11 +41,20 @@ export default function Attendance() {
     }
   };
 
+  const handleDelete = async (r) => {
+    if (!window.confirm(`Delete attendance record #${r.id}? This cannot be undone.`)) return;
+    try {
+      await deleteAttendance(r.id);
+      load();
+    } catch (err) {
+      alert(err.response?.data?.message || err.message);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Attendance & RFID Simulator</h1>
 
-      {/* Simulator Card */}
       <div className="card border-l-4 border-blue-500">
         <h3 className="font-semibold mb-3 flex items-center gap-2">
           <FlaskConical size={18} /> RFID Scan Simulator
@@ -97,7 +111,6 @@ export default function Attendance() {
         )}
       </div>
 
-      {/* Attendance History */}
       <div className="card overflow-x-auto">
         <h3 className="font-semibold mb-3 flex items-center gap-2">
           <History size={18} /> Attendance History ({records.length})
@@ -113,6 +126,7 @@ export default function Attendance() {
               <th>Date</th>
               <th>Time</th>
               <th>Status</th>
+              {isAdmin && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -128,11 +142,22 @@ export default function Attendance() {
                 <td>
                   <span className="badge badge-green">{r.status}</span>
                 </td>
+                {isAdmin && (
+                  <td>
+                    <button
+                      onClick={() => handleDelete(r)}
+                      className="p-1.5 rounded hover:bg-red-50 text-red-600"
+                      title="Delete record"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
             {records.length === 0 && (
               <tr>
-                <td colSpan="8" className="py-6 text-center text-slate-400">
+                <td colSpan={isAdmin ? 9 : 8} className="py-6 text-center text-slate-400">
                   No attendance yet.
                 </td>
               </tr>

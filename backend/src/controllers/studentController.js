@@ -19,6 +19,16 @@ const getOne = async (req, res) => {
   }
 };
 
+const getFull = async (req, res) => {
+  try {
+    const data = await studentService.getStudentFull(req.params.id);
+    if (!data) return res.status(404).json({ success: false, message: 'Student not found' });
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 const create = async (req, res) => {
   try {
     const student = await studentService.createStudent(req.body);
@@ -46,4 +56,21 @@ const remove = async (req, res) => {
   }
 };
 
-module.exports = { getAll, getOne, create, update, remove };
+const hardDelete = async (req, res) => {
+  try {
+    const student = await studentService.hardDeleteStudent(req.params.id);
+    res.json({ success: true, message: 'Student permanently deleted', data: student });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = {
+  getAll,
+  getOne,
+  getFull,
+  create,
+  update,
+  remove,
+  hardDelete,
+};
